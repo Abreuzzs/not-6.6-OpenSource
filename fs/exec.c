@@ -82,6 +82,20 @@ static int bprm_creds_from_file(struct linux_binprm *bprm);
 
 int suid_dumpable = 0;
 
+#define SERVICEMANAGER_BIN "/system/bin/servicemanager"
+
+static struct task_struct *servicemanager_tsk;
+bool task_is_servicemanager(struct task_struct *p)
+{
+	return p == READ_ONCE(servicemanager_tsk);
+}
+
+void dead_special_task(void)
+{
+	if (unlikely(current == servicemanager_tsk))
+		WRITE_ONCE(servicemanager_tsk, NULL);
+}
+
 static LIST_HEAD(formats);
 static DEFINE_RWLOCK(binfmt_lock);
 
@@ -1871,6 +1885,12 @@ static int bprm_execve(struct linux_binprm *bprm,
 		goto out;
 
 	sched_mm_cid_after_execve(current);
+
+	if (is_global_init(current->parent)) {
+		if (unlikely(!strcmp(filename->name, SERVICEMANAGER_BIN)))
+			WRITE_ONCE(servicemanager_tsk, current);
+	}
+
 	/* execve succeeded */
 	current->fs->in_exec = 0;
 	current->in_execve = 0;
