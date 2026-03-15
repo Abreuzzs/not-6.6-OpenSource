@@ -48,9 +48,15 @@
 #include <linux/ratelimit.h>
 #include <linux/task_work.h>
 #ifdef CONFIG_SCHED_BORE
+unsigned int sysctl_sched_base_slice __read_mostly = 1000000000ULL / HZ;
 static const unsigned int nsecs_per_tick = 1000000000ULL / HZ;
 unsigned int sysctl_sched_min_base_slice = 2000000UL;
-unsigned int sysctl_sched_base_slice = 1000000000ULL / HZ;
+#else
+unsigned int sysctl_sched_base_slice = 700000ULL;
+#endif
+#ifdef CONFIG_SCHED_BORE
+static const unsigned int nsecs_per_tick = 1000000000ULL / HZ;
+unsigned int sysctl_sched_min_base_slice = 2000000UL;
 #endif
 #include <linux/rbtree_augmented.h>
 
