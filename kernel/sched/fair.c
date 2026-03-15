@@ -47,6 +47,11 @@
 #include <linux/psi.h>
 #include <linux/ratelimit.h>
 #include <linux/task_work.h>
+#ifdef CONFIG_SCHED_BORE
+static const unsigned int nsecs_per_tick = 1000000000ULL / HZ;
+unsigned int sysctl_sched_min_base_slice = 2000000UL;
+unsigned int sysctl_sched_base_slice = 1000000000ULL / HZ;
+#endif
 #include <linux/rbtree_augmented.h>
 
 #include <asm/switch_to.h>
@@ -101,7 +106,6 @@ unsigned int sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_LOG;
  *
  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
-EXPORT_SYMBOL_GPL(sysctl_sched_base_slice);
 
 /*
  * After fork, child runs first. If set to 0 (default) then
@@ -237,8 +241,6 @@ static inline void update_load_set(struct load_weight *lw, unsigned long w)
  */
 #ifdef CONFIG_SCHED_BORE
 static void update_sysctl(void) {
-	sysctl_sched_base_slice = nsecs_per_tick *
-		max(1UL, DIV_ROUND_UP(sysctl_sched_min_base_slice, nsecs_per_tick));
 }
 void sched_update_min_base_slice(void) { update_sysctl(); }
 #else // !CONFIG_SCHED_BORE
@@ -1054,9 +1056,7 @@ static void update_deadline(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	/*
 	 * For EEVDF the virtual time slope is determined by w_i (iow.
 	 * nice) while the request time r_i is determined by
-	 * sysctl_sched_base_slice.
 	 */
-	se->slice = sysctl_sched_base_slice;
 
 	/*
 	 * EEVDF: vd_i = ve_i + r_i / w_i
@@ -5206,7 +5206,6 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 	u64 vslice, vruntime = avg_vruntime(cfs_rq);
 	s64 lag = 0;
 
-	se->slice = sysctl_sched_base_slice;
 	vslice = calc_delta_fair(se->slice, se);
 
 	/*
