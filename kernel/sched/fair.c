@@ -55,8 +55,9 @@ unsigned int sysctl_sched_min_base_slice = 2000000UL;
 unsigned int sysctl_sched_base_slice = 700000ULL;
 #endif
 #ifdef CONFIG_SCHED_BORE
-static const unsigned int nsecs_per_tick = 1000000000ULL / HZ;
-unsigned int sysctl_sched_min_base_slice = 2000000UL;
+#else
+#endif
+#ifdef CONFIG_SCHED_BORE
 #endif
 #include <linux/rbtree_augmented.h>
 
